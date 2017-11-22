@@ -20,8 +20,7 @@ public class RouterImpl {
 
   public boolean matches(String path) {
     for (int i = 0; i < array.length; i++) {
-      PathPattern pathPattern = array[i];
-      if (pathPattern.matches(path)) {
+      if (array[i].test(path).matches) {
         return true;
       }
     }
