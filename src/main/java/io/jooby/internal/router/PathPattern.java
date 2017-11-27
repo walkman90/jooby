@@ -1,16 +1,15 @@
 package io.jooby.router;
 
 import io.jooby.Route;
+import static java.lang.Character.toLowerCase;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 public class PathPattern {
@@ -27,16 +26,24 @@ public class PathPattern {
 
   private static final Result NO_MATCH = new Result(false, Collections.emptyMap());
 
+  private static final Map<String, String> NO_VARS_MAP = Collections.emptyMap();
+
+  private static final List<String> NO_VARS = Collections.emptyList();
+
   private final Matcher[] matcher;
 
   private final String pattern;
 
-  private List<String> variables;
+  private List<String> variables = NO_VARS;
 
   public PathPattern(String pattern) {
+    this(pattern, false);
+  }
+
+  public PathPattern(String pattern, boolean ignoreCase) {
     this.pattern = Route.normalize(pattern);
-    this.matcher = parse(this.pattern, variable -> {
-      if (variables == null) {
+    this.matcher = parse(this.pattern, ignoreCase, variable -> {
+      if (variables == NO_VARS) {
         variables = new ArrayList<>();
       }
       variables.add(variable);
@@ -48,17 +55,16 @@ public class PathPattern {
   }
 
   public List<String> variables() {
-    return variables == null ? Collections.emptyList() : Collections.unmodifiableList(variables);
+    return Collections.unmodifiableList(variables);
   }
 
   public Result test(String path) {
     int offset = 0;
     int i = 0;
     int len = path.length();
-    Map<String, String> vars = variables == null ? Collections.emptyMap() : new HashMap<>();
+    Map<String, String> vars = variables == NO_VARS ? NO_VARS_MAP : new HashMap<>();
     while (offset != -1 && i < matcher.length) {
-      offset = matcher[i].matches(path, offset, len, vars);
-      i += 1;
+      offset = matcher[i++].matches(path, offset, len, vars);
     }
     if (offset == len) {
       return new Result(true, vars);
@@ -66,7 +72,8 @@ public class PathPattern {
     return NO_MATCH;
   }
 
-  private static final Matcher[] parse(String segment, Consumer<String> variables) {
+  private static final Matcher[] parse(String segment, boolean ignoreCase,
+      Consumer<String> variables) {
     StringBuilder value = new StringBuilder();
     List<Matcher> segments = new ArrayList<>();
     int len = segment.length();
@@ -75,11 +82,11 @@ public class PathPattern {
       int nextIndex = i + 1;
       if (ch == '?') {
         /** Add any pending trailing segment: */
-        staticSegment(value, segments);
+        staticSegment(value, ignoreCase, segments);
         segments.add(OneChar.INSTANCE);
       } else if (ch == '*') {
         /** Add any pending trailing segment: */
-        staticSegment(value, segments);
+        staticSegment(value, ignoreCase, segments);
         if (i + 1 < len && '*' == segment.charAt(i + 1)) {
           int start = i + 2;
           int slashIndex = segment.indexOf('/', start);
@@ -114,7 +121,7 @@ public class PathPattern {
           value.append(ch);
         } else {
           /** Add any pending trailing segment: */
-          staticSegment(value, segments);
+          staticSegment(value, ignoreCase, segments);
 
           // /:name vs /:name/
           int slashIndex = segment.indexOf('/', nextIndex);
@@ -130,7 +137,7 @@ public class PathPattern {
         }
       } else if (ch == '{') {
         /** Add any pending trailing segment: */
-        staticSegment(value, segments);
+        staticSegment(value, ignoreCase, segments);
 
         /**
          * Handle /{name} expression at the end or middle of path segment (/{name}/).
@@ -183,20 +190,25 @@ public class PathPattern {
       } else {
         if (ch == '/') {
           /** Add a new static matcher if we reach a / */
-          staticSegment(value, segments);
+          staticSegment(value, ignoreCase, segments);
         }
         value.append(ch);
       }
       i = nextIndex;
     }
     /** Add any pending trailing segment: */
-    staticSegment(value, segments);
+    staticSegment(value, ignoreCase, segments);
     return finalize(segments);
   }
 
-  private static void staticSegment(StringBuilder value, List<Matcher> segments) {
+  private static void staticSegment(StringBuilder value, boolean ignoreCase,
+      List<Matcher> segments) {
     if (value.length() > 0) {
-      segments.add(new Static(value.toString()));
+      if (ignoreCase) {
+        segments.add(new StaticNoCase(value.toString()));
+      } else {
+        segments.add(new Static(value.toString()));
+      }
       value.setLength(0);
     }
   }
@@ -231,10 +243,6 @@ public class PathPattern {
       return segment.charAt(pos);
     }
     return 0;
-  }
-
-  @Override public String toString() {
-    return Arrays.toString(matcher);
   }
 
   private interface Matcher {
@@ -376,9 +384,9 @@ public class PathPattern {
     }
   }
 
-  private static final class Static implements Matcher {
+  private final static class Static implements Matcher {
 
-    final String value;
+    private final String value;
     private final int len;
 
     Static(String value) {
@@ -395,6 +403,34 @@ public class PathPattern {
       int i = 0;
       while (i < this.len) {
         if (value.charAt(i) != segment.charAt(offset + i)) {
+          return -1;
+        }
+        i += 1;
+      }
+      return offset + i;
+    }
+  }
+
+  private static final class StaticNoCase implements Matcher {
+    final String value;
+    private final int len;
+
+    StaticNoCase(String value) {
+      this.value = value;
+      this.len = value.length();
+    }
+
+    @Override public final int matches(String segment, int offset, int length,
+        Map<String, String> variables) {
+      int len = length - offset;
+      if (len < this.len) {
+        return -1;
+      }
+      int i = 0;
+      while (i < this.len) {
+        char v1 = value.charAt(i);
+        char v2 = segment.charAt(offset + i);
+        if (v1 != v2 && toLowerCase(v1) != toLowerCase(v2)) {
           return -1;
         }
         i += 1;
