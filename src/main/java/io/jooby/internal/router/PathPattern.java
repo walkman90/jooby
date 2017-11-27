@@ -1,4 +1,4 @@
-package io.jooby.router;
+package io.jooby.internal.router;
 
 import io.jooby.Route;
 import static java.lang.Character.toLowerCase;

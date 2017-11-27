@@ -1,12 +1,9 @@
-package io.jooby.router;
+package io.jooby.internal.router;
 
 import io.jooby.Route;
 import io.jooby.Router;
-
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 public class RouterImpl implements Router {
