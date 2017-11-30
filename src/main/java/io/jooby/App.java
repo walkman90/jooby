@@ -4,6 +4,7 @@ import io.jooby.internal.router.RouterImpl;
 import io.jooby.netty.Netty;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
+import org.jooby.funzy.Throwing;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
@@ -21,12 +22,29 @@ public class App implements Router {
     return router.iterator(method, path);
   }
 
-  @Override public Route define(String method, String pattern, Route.Handler handler) {
+  @Override public Route define(String method, String pattern, Route.Filter handler) {
     return router.define(method, pattern, handler);
   }
 
   public static void main(String[] args) {
     App app = new App();
+
+    app.before("GET","/filters", ctx -> {
+      System.out.println("1>" + Thread.currentThread());
+    });
+
+    app.before("GET","/filters", ctx -> {
+      System.out.println("2>" + Thread.currentThread());
+    });
+
+    app.after("GET","/filters", ctx -> {
+      System.out.println("3>" + Thread.currentThread());
+    });
+
+    app.after("GET","/filters", ctx -> {
+      System.out.println("4>" + Thread.currentThread());
+    });
+
     app.get("/", ctx -> ctx.send("Hello Jooby 2"));
     app.get("/favicon.ico", ctx -> {
       return ctx.send(new byte[0]);
@@ -61,6 +79,8 @@ public class App implements Router {
             .observeOn(Schedulers.io())
             .subscribe(v -> ctx.send("&& " + v + " from " + Thread.currentThread()))
     ));
+
+    app.get("/filters", ctx -> ctx.dispatch().send("Filters!"));
 
     app.start();
   }

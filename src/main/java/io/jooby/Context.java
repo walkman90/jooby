@@ -40,6 +40,9 @@ public interface Context {
    * **** Response methods *************************************************************************
    * **********************************************************************************************
    */
+
+  Context after(Route.After after);
+
   int status();
 
   Context status(int status);

@@ -56,7 +56,7 @@ public class RouterImpl implements Router {
     return new RouteIterator(r, path);
   }
 
-  @Override public Route define(String method, String pattern, Route.Handler handler) {
+  @Override public Route define(String method, String pattern, Route.Filter handler) {
     Route route = new Route(method, pattern, handler);
     routes.computeIfAbsent(route.method, k -> new Routes())
         .add(route);

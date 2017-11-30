@@ -13,6 +13,29 @@ public final class Route {
     void handle(Context ctx, Chain chain) throws Throwable;
   }
 
+  public interface Before extends Filter {
+    default void handle(Context ctx, Chain chain) throws Throwable {
+      handle(ctx);
+      chain.next(ctx);
+    }
+    void handle(Context ctx) throws Throwable;
+  }
+
+  public interface After extends Filter {
+    default void handle(Context ctx, Chain chain) throws Throwable {
+      ctx.after(this);
+      chain.next(ctx);
+    }
+
+    default After then(After next) {
+      return ctx -> {
+        handle(ctx);
+        next.handle(ctx);
+      };
+    }
+    void handle(Context ctx) throws Throwable;
+  }
+
   public interface Handler extends Filter {
     default void handle(Context ctx, Chain chain) throws Throwable {
       Object result = handle(ctx);
@@ -33,12 +56,12 @@ public final class Route {
 
   public final PathPattern pattern;
 
-  public final Route.Handler handler;
+  public final Route.Filter handler;
 
-  public Route(String method, String pattern, Route.Handler handler) {
+  public Route(String method, String pattern, Route.Filter handler) {
     this.method = requireNonNull(method, "Method required.").toUpperCase();
     this.pattern = new PathPattern(requireNonNull(pattern, "Pattern required."), false);
-    this.handler = requireNonNull(handler, "Handler required.");
+    this.handler = requireNonNull(handler, "Filter required.");
   }
 
   public static final String normalize(String pattern) {

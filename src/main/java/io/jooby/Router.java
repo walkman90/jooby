@@ -14,6 +14,14 @@ public interface Router {
 
   String PATCH = "PATCH";
 
+  default Route before(String method, String pattern, Route.Before handler) {
+    return define(method.toUpperCase(), pattern, handler);
+  }
+
+  default Route after(String method, String pattern, Route.After handler) {
+    return define(method.toUpperCase(), pattern, handler);
+  }
+
   default Route get(String pattern, Route.Handler handler) {
     return define(GET, pattern, handler);
   }
@@ -36,5 +44,5 @@ public interface Router {
 
   Iterator<Route> iterator(String method, String path);
 
-  Route define(String method, String pattern, Route.Handler handler);
+  Route define(String method, String pattern, Route.Filter handler);
 }

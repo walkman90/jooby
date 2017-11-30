@@ -11,10 +11,22 @@ import java.util.concurrent.Executor;
 public abstract class BaseContext implements Context, Route.Chain {
 
   private Route route;
+
   private final Iterator<Route> router;
+
+  protected Route.After after;
 
   public BaseContext(Iterator<Route> router) {
     this.router = router;
+  }
+
+  @Override public Context after(Route.After after) {
+    if (this.after == null) {
+      this.after = after;
+    } else {
+      this.after = this.after.then(after);
+    }
+    return this;
   }
 
   @Nonnull @Override public final Route.Chain chain() {

@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import static io.netty.handler.codec.http.LastHttpContent.EMPTY_LAST_CONTENT;
+import org.jooby.funzy.Throwing;
 
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
@@ -128,25 +129,32 @@ public final class NettyContext extends BaseContext {
     if (chunk > 0) {
       throw new IllegalStateException("Response already started via write methods");
     }
-    int len = buff.readableBytes();
-    setHeaders.set(CONTENT_LENGTH, len);
-    if (len > 0) {
-      HttpResponse rsp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buff);
-      rsp.headers().set(setHeaders);
-      if (keepAlive) {
-        ctx.writeAndFlush(rsp, ctx.voidPromise());
+    try {
+      if (after != null) {
+        after.handle(this);
+      }
+      int len = buff.readableBytes();
+      setHeaders.set(CONTENT_LENGTH, len);
+      if (len > 0) {
+        HttpResponse rsp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buff);
+        rsp.headers().set(setHeaders);
+        if (keepAlive) {
+          ctx.writeAndFlush(rsp, ctx.voidPromise());
+        } else {
+          ctx.writeAndFlush(rsp).addListener(CLOSE);
+        }
       } else {
+        // empty response
+        setHeaders.remove(CONNECTION);
+        setHeaders.set(CONTENT_LENGTH, 0);
+        HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
         ctx.writeAndFlush(rsp).addListener(CLOSE);
       }
-    } else {
-      // empty response
-      setHeaders.remove(CONNECTION);
-      setHeaders.set(CONTENT_LENGTH, 0);
-      HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
-      ctx.writeAndFlush(rsp).addListener(CLOSE);
+      committed = true;
+      return this;
+    } catch (Throwable x) {
+      throw Throwing.sneakyThrow(x);
     }
-    committed = true;
-    return this;
   }
 
   private void writeChunk(ByteBuf buff) {
