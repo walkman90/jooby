@@ -1,6 +1,6 @@
 package io.jooby.router;
 
-import io.jooby.internal.router.RouterImpl;
+import io.jooby.internal.RouterImpl;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Setup;
 

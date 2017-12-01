@@ -60,7 +60,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     exec.execute(() -> {
       try {
         // ctx.dispatch comes from handler so we are safe to keep existing handler and move from there
-        iterator.next().handler.handle(context, chain);
+        iterator.next().handler().handle(context, chain);
       } catch (Throwable throwable) {
         throwable.printStackTrace();
       }

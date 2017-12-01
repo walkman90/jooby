@@ -1,4 +1,4 @@
-package io.jooby.internal.router;
+package io.jooby.internal;
 
 import io.jooby.Route;
 import static java.lang.Character.toLowerCase;
@@ -24,7 +24,7 @@ public class PathPattern {
     }
   }
 
-  private static final Result NO_MATCH = new Result(false, Collections.emptyMap());
+  static final Result NO_MATCH = new Result(false, Collections.emptyMap());
 
   private static final Map<String, String> NO_VARS_MAP = Collections.emptyMap();
 

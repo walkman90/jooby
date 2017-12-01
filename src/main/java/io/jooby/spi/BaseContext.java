@@ -3,12 +3,13 @@ package io.jooby.spi;
 import io.jooby.Context;
 import io.jooby.Route;
 import io.jooby.Router;
+import io.jooby.internal.RouteChainImpl;
 
 import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 
-public abstract class BaseContext implements Context, Route.Chain {
+public abstract class BaseContext implements Context {
 
   private Route route;
 
@@ -30,19 +31,7 @@ public abstract class BaseContext implements Context, Route.Chain {
   }
 
   @Nonnull @Override public final Route.Chain chain() {
-    return this;
-  }
-
-  @Override public final void next(Context ctx) throws Throwable {
-    if (committed()) {
-      return;
-    }
-    if (router.hasNext()) {
-      this.route = router.next();
-      this.route.handler.handle(ctx, this);
-    } else {
-      throw new IllegalStateException("NOT FOUND");
-    }
+    return new RouteChainImpl(router);
   }
 
   @Nonnull @Override public final Route route() {

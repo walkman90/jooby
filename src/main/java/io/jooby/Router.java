@@ -14,12 +14,24 @@ public interface Router {
 
   String PATCH = "PATCH";
 
+  default String[] methods() {
+    return new String[]{GET, POST, PUT, PATCH};
+  }
+
   default Route before(String method, String pattern, Route.Before handler) {
     return define(method.toUpperCase(), pattern, handler);
   }
 
+  default Route before(String pattern, Route.Before handler) {
+    return define("*", pattern, handler);
+  }
+
   default Route after(String method, String pattern, Route.After handler) {
     return define(method.toUpperCase(), pattern, handler);
+  }
+
+  default Route after(String pattern, Route.After handler) {
+    return define("*", pattern, handler);
   }
 
   default Route get(String pattern, Route.Handler handler) {

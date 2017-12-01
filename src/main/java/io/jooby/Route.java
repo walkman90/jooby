@@ -1,27 +1,25 @@
 package io.jooby;
 
-import io.jooby.internal.router.PathPattern;
-import static java.util.Objects.requireNonNull;
+public interface Route {
 
-public final class Route {
-
-  public interface Chain {
+  interface Chain {
     void next(Context ctx) throws Throwable;
   }
 
-  public interface Filter {
+  interface Filter {
     void handle(Context ctx, Chain chain) throws Throwable;
   }
 
-  public interface Before extends Filter {
+  interface Before extends Filter {
     default void handle(Context ctx, Chain chain) throws Throwable {
       handle(ctx);
       chain.next(ctx);
     }
+
     void handle(Context ctx) throws Throwable;
   }
 
-  public interface After extends Filter {
+  interface After extends Filter {
     default void handle(Context ctx, Chain chain) throws Throwable {
       ctx.after(this);
       chain.next(ctx);
@@ -33,18 +31,14 @@ public final class Route {
         next.handle(ctx);
       };
     }
+
     void handle(Context ctx) throws Throwable;
   }
 
-  public interface Handler extends Filter {
+  interface Handler extends Filter {
     default void handle(Context ctx, Chain chain) throws Throwable {
       Object result = handle(ctx);
-      if (ctx.committed()) {
-        return;
-      }
-      if (result == null || ctx == result) {
-        chain.next(ctx);
-      } else {
+      if (!ctx.committed()) {
         ctx.send(result.toString());
       }
     }
@@ -52,19 +46,13 @@ public final class Route {
     Object handle(Context ctx) throws Throwable;
   }
 
-  public final String method;
+  String method();
 
-  public final PathPattern pattern;
+  String pattern();
 
-  public final Route.Filter handler;
+  Filter handler();
 
-  public Route(String method, String pattern, Route.Filter handler) {
-    this.method = requireNonNull(method, "Method required.").toUpperCase();
-    this.pattern = new PathPattern(requireNonNull(pattern, "Pattern required."), false);
-    this.handler = requireNonNull(handler, "Filter required.");
-  }
-
-  public static final String normalize(String pattern) {
+  static String normalize(String pattern) {
     if (pattern.equals("*")) {
       return "/**";
     }

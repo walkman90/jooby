@@ -1,10 +1,9 @@
 package io.jooby;
 
-import io.jooby.internal.router.RouterImpl;
+import io.jooby.internal.RouterImpl;
 import io.jooby.netty.Netty;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
-import org.jooby.funzy.Throwing;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
