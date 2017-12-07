@@ -1,58 +1,61 @@
 package io.jooby;
 
+import javax.annotation.Nonnull;
+
 public interface Route {
 
   interface Chain {
-    void next(Context ctx) throws Throwable;
+    void next(@Nonnull Context ctx) throws Throwable;
   }
 
   interface Filter {
-    void handle(Context ctx, Chain chain) throws Throwable;
+    void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable;
   }
 
   interface Before extends Filter {
-    default void handle(Context ctx, Chain chain) throws Throwable {
+    default void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable {
       handle(ctx);
       chain.next(ctx);
     }
 
-    void handle(Context ctx) throws Throwable;
+    void handle(@Nonnull Context ctx) throws Throwable;
   }
 
   interface After extends Filter {
-    default void handle(Context ctx, Chain chain) throws Throwable {
+    default void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable {
       ctx.after(this);
       chain.next(ctx);
     }
 
-    default After then(After next) {
+    default @Nonnull After then(@Nonnull After next) {
       return ctx -> {
         handle(ctx);
         next.handle(ctx);
       };
     }
 
-    void handle(Context ctx) throws Throwable;
+    void handle(@Nonnull Context ctx) throws Throwable;
   }
 
   interface Handler extends Filter {
-    default void handle(Context ctx, Chain chain) throws Throwable {
+    default void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable {
       Object result = handle(ctx);
-      if (!ctx.committed()) {
+      if (result != ctx && !ctx.committed()) {
         ctx.send(result.toString());
       }
+      chain.next(ctx);
     }
 
-    Object handle(Context ctx) throws Throwable;
+    Object handle(@Nonnull Context ctx) throws Throwable;
   }
 
-  String method();
+  @Nonnull String method();
 
-  String pattern();
+  @Nonnull String pattern();
 
-  Filter handler();
+  @Nonnull Filter handler();
 
-  static String normalize(String pattern) {
+  static @Nonnull String normalize(@Nonnull String pattern) {
     if (pattern.equals("*")) {
       return "/**";
     }

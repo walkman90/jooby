@@ -36,10 +36,6 @@ public class PathPattern {
 
   private List<String> variables = NO_VARS;
 
-  public PathPattern(String pattern) {
-    this(pattern, false);
-  }
-
   public PathPattern(String pattern, boolean ignoreCase) {
     this.pattern = Route.normalize(pattern);
     this.matcher = parse(this.pattern, ignoreCase, variable -> {

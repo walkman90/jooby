@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.LastHttpContent.EMPTY_LAST_CONTENT;
 import org.jooby.funzy.Throwing;
 
 import javax.annotation.Nonnull;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -44,10 +45,9 @@ public final class NettyContext extends BaseContext {
   private boolean keepAlive;
   private boolean committed;
   private int chunk;
+  private NettyOutputStream stream;
 
-  public NettyContext(ChannelHandlerContext ctx, HttpRequest req, boolean keepAlive, String path,
-      Iterator<Route> router) {
-    super(router);
+  public NettyContext(ChannelHandlerContext ctx, HttpRequest req, boolean keepAlive, String path) {
     this.path = path;
     this.ctx = ctx;
     this.req = req;
@@ -84,6 +84,17 @@ public final class NettyContext extends BaseContext {
     return this;
   }
 
+  @Override public OutputStream toOutputStream() {
+    chunk += 1;
+    if (stream == null) {
+      stream = new NettyOutputStream(ctx, 8192);
+      writeHeaders();
+    } else {
+      throw new IllegalStateException("toOutputStream() was already called");
+    }
+    return stream;
+  }
+
   @Override public final Context write(byte[] chunk) {
     writeChunk(wrappedBuffer(chunk));
     return this;
@@ -116,38 +127,34 @@ public final class NettyContext extends BaseContext {
   }
 
   @Override public Context end() {
-    committed = true;
     if (chunk > 0) {
       if (!keepAlive) {
         ctx.writeAndFlush(EMPTY_LAST_CONTENT).addListener(CLOSE);
       }
+    } else if (!committed) {
+      setHeaders.remove(CONNECTION);
+      setHeaders.set(CONTENT_LENGTH, 0);
+      HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
+      ctx.writeAndFlush(rsp).addListener(CLOSE);
     }
+    committed = true;
     return this;
   }
 
   private Context send(ByteBuf buff) {
     if (chunk > 0) {
-      throw new IllegalStateException("Response already started via write methods");
+      throw new IllegalStateException("Response already started via ctx.write(...) method");
     }
     try {
       if (after != null) {
         after.handle(this);
       }
-      int len = buff.readableBytes();
-      setHeaders.set(CONTENT_LENGTH, len);
-      if (len > 0) {
-        HttpResponse rsp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buff);
-        rsp.headers().set(setHeaders);
-        if (keepAlive) {
-          ctx.writeAndFlush(rsp, ctx.voidPromise());
-        } else {
-          ctx.writeAndFlush(rsp).addListener(CLOSE);
-        }
+      setHeaders.set(CONTENT_LENGTH, buff.readableBytes());
+      HttpResponse rsp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buff);
+      rsp.headers().set(setHeaders);
+      if (keepAlive) {
+        ctx.writeAndFlush(rsp, ctx.voidPromise());
       } else {
-        // empty response
-        setHeaders.remove(CONNECTION);
-        setHeaders.set(CONTENT_LENGTH, 0);
-        HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
         ctx.writeAndFlush(rsp).addListener(CLOSE);
       }
       committed = true;
@@ -158,17 +165,24 @@ public final class NettyContext extends BaseContext {
   }
 
   private void writeChunk(ByteBuf buff) {
+    if (stream != null) {
+      throw new IllegalStateException("toOutputStream() was called");
+    }
     if (chunk == 0) {
-      if (!setHeaders.contains(HttpHeaderNames.CONTENT_LENGTH)) {
-        setHeaders.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
-        setHeaders.remove(HttpHeaderNames.CONNECTION);
-        keepAlive = false;
-      }
-      HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
-      // TODO: group writes and run inside eventloop? we must do the same with tail chunk.
-      ctx.write(rsp, ctx.voidPromise());
+      writeHeaders();
     }
     ctx.writeAndFlush(new DefaultHttpContent(buff), ctx.voidPromise());
     chunk += 1;
+  }
+
+  private void writeHeaders() {
+    if (!setHeaders.contains(HttpHeaderNames.CONTENT_LENGTH)) {
+      setHeaders.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
+      setHeaders.remove(HttpHeaderNames.CONNECTION);
+      keepAlive = false;
+    }
+    HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
+    // TODO: group writes and run inside eventloop? we must do the same with tail chunk.
+    ctx.write(rsp, ctx.voidPromise());
   }
 }

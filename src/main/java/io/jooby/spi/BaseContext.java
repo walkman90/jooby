@@ -13,13 +13,7 @@ public abstract class BaseContext implements Context {
 
   private Route route;
 
-  private final Iterator<Route> router;
-
   protected Route.After after;
-
-  public BaseContext(Iterator<Route> router) {
-    this.router = router;
-  }
 
   @Override public Context after(Route.After after) {
     if (this.after == null) {
@@ -30,12 +24,13 @@ public abstract class BaseContext implements Context {
     return this;
   }
 
-  @Nonnull @Override public final Route.Chain chain() {
-    return new RouteChainImpl(router);
-  }
-
   @Nonnull @Override public final Route route() {
     return route;
+  }
+
+  @Nonnull @Override public Context route(@Nonnull Route route) {
+    this.route = route;
+    return this;
   }
 
   @Override public final Context dispatch(Executor executor) {

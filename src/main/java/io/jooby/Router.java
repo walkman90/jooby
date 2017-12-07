@@ -1,6 +1,7 @@
 package io.jooby;
 
-import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Stream;
 
 public interface Router {
 
@@ -54,7 +55,9 @@ public interface Router {
     return define(PATCH, pattern, handler);
   }
 
-  Iterator<Route> iterator(String method, String path);
+  Route.Chain chain(String method, String path);
+
+  Stream<Route> routes();
 
   Route define(String method, String pattern, Route.Filter handler);
 }

@@ -1,6 +1,6 @@
 package io.jooby;
 
-public interface HttpServer {
+public interface WebServer {
 
   default void start(Router router) {
     start(router, true);

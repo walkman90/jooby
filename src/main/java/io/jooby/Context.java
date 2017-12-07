@@ -1,6 +1,10 @@
 package io.jooby;
 
 import javax.annotation.Nonnull;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +29,7 @@ public interface Context {
 
   @Nonnull Route route();
 
-  @Nonnull Route.Chain chain();
+  @Nonnull Context route(@Nonnull Route route);
 
   boolean isInIoThread();
 
@@ -40,6 +44,16 @@ public interface Context {
    * **** Response methods *************************************************************************
    * **********************************************************************************************
    */
+
+  OutputStream toOutputStream();
+
+  default Writer toWriter() {
+    return toWriter(StandardCharsets.UTF_8);
+  }
+
+  default Writer toWriter(Charset charset) {
+    return new OutputStreamWriter(toOutputStream(), charset);
+  }
 
   Context after(Route.After after);
 

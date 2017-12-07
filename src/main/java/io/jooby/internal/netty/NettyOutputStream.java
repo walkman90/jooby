@@ -53,7 +53,8 @@ public class NettyOutputStream extends OutputStream {
 
   @Override
   public void flush() throws IOException {
-    if (buffer.readableBytes() > 0) {
+    int chunkSize = buffer.readableBytes();
+    if (chunkSize > 0) {
       ctx.writeAndFlush(new DefaultHttpContent(buffer.copy()));
       buffer.clear();
     }

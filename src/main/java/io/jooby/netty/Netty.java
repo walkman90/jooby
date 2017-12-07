@@ -1,6 +1,6 @@
 package io.jooby.netty;
 
-import io.jooby.HttpServer;
+import io.jooby.WebServer;
 import io.jooby.Router;
 import io.jooby.internal.netty.NettyHandler;
 import io.netty.bootstrap.ServerBootstrap;
@@ -20,11 +20,10 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import io.netty.util.ResourceLeakDetector;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import org.jooby.funzy.Throwing;
 
-public class Netty implements HttpServer {
+public class Netty implements WebServer {
 
   private static boolean SSL = false;
 

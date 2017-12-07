@@ -3,23 +3,22 @@ package io.jooby.internal;
 import io.jooby.Context;
 import io.jooby.Route;
 
-import java.util.Iterator;
-
 public class RouteChainImpl implements Route.Chain {
-  private final Iterator<Route> router;
+  private final RouteImpl[] routes;
+  private int r;
 
-  public RouteChainImpl(Iterator<Route> router) {
-    this.router = router;
+  public RouteChainImpl(RouteImpl[] routes) {
+    this.routes = routes;
   }
 
   @Override public void next(Context ctx) throws Throwable {
     if (ctx.committed()) {
       return;
     }
-    if (router.hasNext()) {
-      router.next().handler().handle(ctx, this);
-    } else {
-      throw new IllegalStateException("NOT FOUND");
+    if (r < routes.length) {
+      RouteImpl route = routes[r++];
+      ctx.route(route);
+      route.handler.handle(ctx, this);
     }
   }
 }

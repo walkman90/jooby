@@ -40,27 +40,26 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     if (msg instanceof HttpRequest) {
       HttpRequest req = (HttpRequest) msg;
       String path = Route.normalize(req.uri());
-      Iterator<Route> iterator = router.iterator(req.method().name(), path);
-      NettyContext context = new NettyContext(ctx, req, isKeepAlive(req), path, iterator);
-      Route.Chain chain = context.chain();
       ctx.channel().attr(PATH).set(path);
+      Route.Chain chain = router.chain(req.method().name(), path);
+      NettyContext context = new NettyContext(ctx, req, isKeepAlive(req), path);
       try {
         log.info("{}", path);
         chain.next(context);
       } catch (Context.Dispatched dispatched) {
-        dispatch(dispatched.executor, context, chain, iterator);
+        dispatch(dispatched.executor, context, chain);
       } catch (Throwable x) {
         exceptionCaught(ctx, x);
       }
     }
   }
 
-  private void dispatch(Executor executor, Context context, Route.Chain chain, Iterator<Route> iterator) {
+  private void dispatch(Executor executor, Context context, Route.Chain chain) {
     Executor exec = executor == null ? this.executor : executor;
     exec.execute(() -> {
       try {
-        // ctx.dispatch comes from handler so we are safe to keep existing handler and move from there
-        iterator.next().handler().handle(context, chain);
+        // resume from current route
+        context.route().handler().handle(context, chain);
       } catch (Throwable throwable) {
         throwable.printStackTrace();
       }

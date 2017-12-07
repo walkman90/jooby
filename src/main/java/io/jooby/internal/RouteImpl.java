@@ -9,14 +9,31 @@ public class RouteImpl implements Route {
 
   public final PathPattern pattern;
 
+  private final String patternString;
+
   public final Route.Filter handler;
 
-  RouteImpl next;
+  public final boolean endpoint;
 
   public RouteImpl(String method, String pattern, Route.Filter handler) {
-    this.method = requireNonNull(method, "Method required.").toUpperCase();
-    this.pattern = new PathPattern(requireNonNull(pattern, "Pattern required."), false);
-    this.handler = requireNonNull(handler, "Filter required.");
+    this.method = method.toUpperCase();
+    this.pattern = new PathPattern(pattern, false);
+    this.patternString = this.pattern.pattern();
+    this.handler = handler;
+    this.endpoint = handler instanceof Route.Handler;
+  }
+
+  private RouteImpl(String name, String method, String pattern, Route.Filter handler) {
+    this.method = method;
+    this.pattern = null;
+    this.patternString = pattern;
+    this.handler = handler;
+    this.endpoint = true;
+  }
+
+  final static RouteImpl fallback(String name, String method, String pattern,
+      Route.Filter handler) {
+    return new RouteImpl(name, method, pattern, handler);
   }
 
   @Override public String method() {
@@ -24,11 +41,10 @@ public class RouteImpl implements Route {
   }
 
   @Override public String pattern() {
-    return pattern.pattern();
+    return patternString;
   }
 
   @Override public Filter handler() {
     return handler;
   }
-
 }
