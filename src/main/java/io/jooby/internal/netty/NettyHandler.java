@@ -59,7 +59,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
     exec.execute(() -> {
       try {
         // resume from current route
-        context.route().handler().handle(context, chain);
+        context.route().handle(context, chain);
       } catch (Throwable throwable) {
         throwable.printStackTrace();
       }

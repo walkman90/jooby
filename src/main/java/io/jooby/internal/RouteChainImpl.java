@@ -12,7 +12,7 @@ public class RouteChainImpl implements Route.Chain {
   }
 
   @Override public void next(Context ctx) throws Throwable {
-    if (ctx.committed()) {
+    if (ctx.committed() || ctx.isDetached()) {
       return;
     }
     if (r < routes.length) {

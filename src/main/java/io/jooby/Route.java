@@ -1,5 +1,7 @@
 package io.jooby;
 
+import org.jooby.funzy.Throwing;
+
 import javax.annotation.Nonnull;
 
 public interface Route {
@@ -54,6 +56,10 @@ public interface Route {
   @Nonnull String pattern();
 
   @Nonnull Filter handler();
+
+  default void handle(Context ctx, Route.Chain chain) throws Throwable {
+    handler().handle(ctx, chain);
+  }
 
   static @Nonnull String normalize(@Nonnull String pattern) {
     if (pattern.equals("*")) {

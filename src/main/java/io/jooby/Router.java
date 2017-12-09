@@ -1,5 +1,8 @@
 package io.jooby;
 
+import org.jooby.funzy.Throwing;
+
+import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -53,6 +56,20 @@ public interface Router {
 
   default Route patch(String pattern, Route.Handler handler) {
     return define(PATCH, pattern, handler);
+  }
+
+  default Route.Handler detach(Throwing.Consumer<Context> handler) {
+    return new Route.Handler() {
+      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Chain chain)
+          throws Throwable {
+        ctx.detach();
+        handler.accept(ctx);
+      }
+
+      @Override public Object handle(@Nonnull Context ctx) throws Throwable {
+        return ctx;
+      }
+    };
   }
 
   Route.Chain chain(String method, String path);

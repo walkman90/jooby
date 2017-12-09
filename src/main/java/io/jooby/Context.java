@@ -1,9 +1,10 @@
 package io.jooby;
 
+import org.jooby.funzy.Throwing;
+
 import javax.annotation.Nonnull;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -18,6 +19,9 @@ public interface Context {
     public Dispatched(Executor executor) {
       this.executor = executor;
     }
+  }
+
+  class Detached extends RuntimeException {
   }
 
   /**
@@ -39,23 +43,59 @@ public interface Context {
 
   Context dispatch(Executor executor);
 
+  boolean isDetached();
+
+  Context detach();
+
   /**
    * **********************************************************************************************
    * **** Response methods *************************************************************************
    * **********************************************************************************************
    */
 
-  OutputStream toOutputStream();
+  OutputStream outputStream();
 
-  default Writer toWriter() {
-    return toWriter(StandardCharsets.UTF_8);
+  default Context outputStream(Throwing.Consumer<OutputStream> callback) {
+    try (OutputStream w = outputStream()) {
+      callback.accept(w);
+    } catch (Throwable x) {
+      throw Throwing.sneakyThrow(x);
+    } finally {
+      end();
+    }
+    return this;
   }
 
-  default Writer toWriter(Charset charset) {
-    return new OutputStreamWriter(toOutputStream(), charset);
+  default Writer writer() {
+    return writer(StandardCharsets.UTF_8);
+  }
+
+  default Context writer(Throwing.Consumer<Writer> writer) {
+    return writer(StandardCharsets.UTF_8, writer);
+  }
+
+  default Context writer(Charset charset, Throwing.Consumer<Writer> writer) {
+    try (Writer w = writer(charset)) {
+      writer.accept(w);
+    } catch (Throwable x) {
+      throw Throwing.sneakyThrow(x);
+    } finally {
+      end();
+    }
+    return this;
+  }
+
+  default Writer writer(Charset charset) {
+    return new OutputStreamWriter(outputStream(), charset);
   }
 
   Context after(Route.After after);
+
+  default Context header(String name, int value) {
+    return header(name, Integer.toString(value));
+  }
+
+  Context header(String name, String value);
 
   int status();
 

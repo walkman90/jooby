@@ -25,8 +25,6 @@ import org.jooby.funzy.Throwing;
 
 public class Netty implements WebServer {
 
-  private static boolean SSL = false;
-
   public static class Pipeline extends ChannelInitializer<SocketChannel> {
 
     private final SslContext sslCtx;
@@ -49,12 +47,16 @@ public class Netty implements WebServer {
     }
   }
 
-  public void start(Router router, boolean join) {
+  private static boolean SSL = false;
+  private NioEventLoopGroup bossGroup;
+  private NioEventLoopGroup workerGroup;
+
+  public void start(int port, Router router, boolean join) {
     // Configure SSL.
     final SslContext sslCtx;
     // Configure the server.
-    EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
+    this.bossGroup = new NioEventLoopGroup(1);
+    this.workerGroup = new NioEventLoopGroup();
     try {
       if (SSL) {
         SelfSignedCertificate ssc = new SelfSignedCertificate();
@@ -67,10 +69,10 @@ public class Netty implements WebServer {
       b.option(ChannelOption.SO_BACKLOG, 1024);
       b.group(bossGroup, workerGroup)
           .channel(NioServerSocketChannel.class)
-          .handler(new LoggingHandler(LogLevel.INFO))
+          .handler(new LoggingHandler(LogLevel.DEBUG))
           .childHandler(new Pipeline(sslCtx, executor, router));
 
-      Channel ch = b.bind(8080).sync().channel();
+      Channel ch = b.bind(port).sync().channel();
 
       ChannelFuture future = ch.closeFuture();
       if (join) {
@@ -78,9 +80,11 @@ public class Netty implements WebServer {
       }
     } catch (Throwable x) {
       throw Throwing.sneakyThrow(x);
-    } finally {
-      bossGroup.shutdownGracefully();
-      workerGroup.shutdownGracefully();
     }
+  }
+
+  @Override public void stop() {
+    workerGroup.shutdownGracefully();
+    bossGroup.shutdownGracefully();
   }
 }

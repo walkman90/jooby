@@ -46,6 +46,7 @@ public final class NettyContext extends BaseContext {
   private boolean committed;
   private int chunk;
   private NettyOutputStream stream;
+  private boolean detached;
 
   public NettyContext(ChannelHandlerContext ctx, HttpRequest req, boolean keepAlive, String path) {
     this.path = path;
@@ -74,6 +75,11 @@ public final class NettyContext extends BaseContext {
     return ctx.executor().inEventLoop();
   }
 
+  @Override public Context header(String name, String value) {
+    setHeaders.set(name, value);
+    return this;
+  }
+
   @Override public final Context type(String contentType) {
     setHeaders.set(CONTENT_TYPE, contentType);
     return this;
@@ -84,13 +90,22 @@ public final class NettyContext extends BaseContext {
     return this;
   }
 
-  @Override public OutputStream toOutputStream() {
+  @Override public boolean isDetached() {
+    return detached;
+  }
+
+  @Override public Context detach() {
+    detached = true;
+    return this;
+  }
+
+  @Override public OutputStream outputStream() {
     chunk += 1;
     if (stream == null) {
       stream = new NettyOutputStream(ctx, 8192);
       writeHeaders();
     } else {
-      throw new IllegalStateException("toOutputStream() was already called");
+      throw new IllegalStateException("outputStream() was already called");
     }
     return stream;
   }
@@ -166,7 +181,7 @@ public final class NettyContext extends BaseContext {
 
   private void writeChunk(ByteBuf buff) {
     if (stream != null) {
-      throw new IllegalStateException("toOutputStream() was called");
+      throw new IllegalStateException("outputStream() was called");
     }
     if (chunk == 0) {
       writeHeaders();
