@@ -3,7 +3,6 @@ package io.jooby;
 import org.jooby.funzy.Throwing;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.stream.Stream;
 
 public interface Router {
@@ -77,4 +76,8 @@ public interface Router {
   Stream<Route> routes();
 
   Route define(String method, String pattern, Route.Filter handler);
+
+  Router err(Route.ErrHandler handler);
+
+  Route.ErrHandler err();
 }

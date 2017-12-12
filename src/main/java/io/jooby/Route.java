@@ -1,13 +1,11 @@
 package io.jooby;
 
-import org.jooby.funzy.Throwing;
-
 import javax.annotation.Nonnull;
 
 public interface Route {
 
   interface Chain {
-    void next(@Nonnull Context ctx) throws Throwable;
+    void next(@Nonnull Context ctx);
   }
 
   interface Filter {
@@ -49,6 +47,21 @@ public interface Route {
     }
 
     Object handle(@Nonnull Context ctx) throws Throwable;
+  }
+
+  interface ErrHandler {
+    void handle(Context ctx, Err problem);
+
+    default ErrHandler then(Route.ErrHandler next) {
+      return (ctx, problem) -> {
+        if (!ctx.committed()) {
+          handle(ctx, problem);
+          if (!ctx.committed()) {
+            next.handle(ctx, problem);
+          }
+        }
+      };
+    }
   }
 
   @Nonnull String method();

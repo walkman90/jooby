@@ -38,6 +38,15 @@ public class App implements Router {
     return router.define(method, pattern, handler);
   }
 
+  @Override public Route.ErrHandler err() {
+    return router.err();
+  }
+
+  @Override public App err(Route.ErrHandler handler) {
+    router.err(handler);
+    return this;
+  }
+
   public Logger log() {
     return LoggerFactory.getLogger(getClass());
   }

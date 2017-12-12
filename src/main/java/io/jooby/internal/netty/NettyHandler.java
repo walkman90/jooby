@@ -1,6 +1,7 @@
 package io.jooby.internal.netty;
 
 import io.jooby.Context;
+import io.jooby.Err;
 import io.jooby.Route;
 import io.jooby.Router;
 import io.netty.channel.ChannelHandler;
@@ -21,7 +22,6 @@ import java.util.concurrent.Executor;
 @ChannelHandler.Sharable
 public class NettyHandler extends ChannelInboundHandlerAdapter {
   private static final AttributeKey<String> PATH = AttributeKey.valueOf("path");
-  private final Logger log = LoggerFactory.getLogger(getClass());
   private final DefaultEventExecutorGroup executor;
   private final Router router;
 
@@ -44,33 +44,25 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
       Route.Chain chain = router.chain(req.method().name(), path);
       NettyContext context = new NettyContext(ctx, req, isKeepAlive(req), path);
       try {
-        log.info("{}", path);
         chain.next(context);
       } catch (Context.Dispatched dispatched) {
-        dispatch(dispatched.executor, context, chain);
-      } catch (Throwable x) {
-        exceptionCaught(ctx, x);
+        dispatch(dispatched.executor, ctx, context, chain);
       }
     }
   }
 
-  private void dispatch(Executor executor, Context context, Route.Chain chain) {
+  private void dispatch(Executor executor, ChannelHandlerContext ctx, Context context,
+      Route.Chain chain) {
     Executor exec = executor == null ? this.executor : executor;
-    exec.execute(() -> {
-      try {
-        // resume from current route
-        context.route().handle(context, chain);
-      } catch (Throwable throwable) {
-        throwable.printStackTrace();
-      }
-    });
+    exec.execute(() -> chain.next(context));
   }
 
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
     String path = ctx.channel().attr(PATH).get();
-    log.error("execution of {} resulted in exception", path, cause);
     ctx.close();
+    LoggerFactory.getLogger(Err.class)
+        .error("execution of {} resulted in unexpected exception", path, cause);
   }
 }
 

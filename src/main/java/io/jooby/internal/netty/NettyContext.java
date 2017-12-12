@@ -71,6 +71,10 @@ public final class NettyContext extends BaseContext {
     return path;
   }
 
+  @Nonnull @Override public String method() {
+    return req.method().name();
+  }
+
   @Override public final boolean isInIoThread() {
     return ctx.executor().inEventLoop();
   }
@@ -96,6 +100,11 @@ public final class NettyContext extends BaseContext {
 
   @Override public Context detach() {
     detached = true;
+    return this;
+  }
+
+  @Override public Context reset() {
+    setHeaders.clear();
     return this;
   }
 

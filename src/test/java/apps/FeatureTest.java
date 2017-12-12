@@ -57,12 +57,6 @@ public class FeatureTest extends App {
           .observeOn(Schedulers.single())
           .subscribe(ctx::send);
     }));
-
-    get("/rx/flow", rx(ctx ->
-      Flowable.fromCallable(() -> "Hello rx/flow!")
-          .subscribeOn(Schedulers.io())
-          .observeOn(Schedulers.single())
-    ));
   }
 
   @Test
