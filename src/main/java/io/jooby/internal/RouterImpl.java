@@ -1,12 +1,15 @@
 package io.jooby.internal;
 
+import io.jooby.Context;
 import io.jooby.Err;
 import io.jooby.Route;
 import io.jooby.Router;
 import io.jooby.Status;
+import org.jooby.funzy.Throwing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -88,6 +91,33 @@ public class RouterImpl implements Router {
     return this;
   }
 
+  @Override public <T> Router with(Throwing.Consumer2<Context, T> consumer, Runnable action) {
+    int beforeSize = routeSize;
+    action.run();
+    for (int i = beforeSize; i < routeSize; i++) {
+      RouteImpl route = routes[i];
+      if (route.endpoint) {
+        Route.Handler handler = (Route.Handler) route.handler;
+        route.handler = mapHandler(handler, consumer);
+      }
+    }
+    return this;
+  }
+
+  private static <T> Route.Handler mapHandler(Route.Handler handler,
+      Throwing.Consumer2<Context, T> consumer) {
+    return new Route.Handler() {
+      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Chain chain)
+          throws Throwable {
+        Object value = handle(ctx);
+        consumer.accept(ctx, (T) value);
+      }
+
+      @Override public Object handle(@Nonnull Context ctx) throws Throwable {
+        return handler.handle(ctx);
+      }
+    };
+  }
 
   private static Route.ErrHandler defaultErrHandler() {
     return (ctx, problem) -> {

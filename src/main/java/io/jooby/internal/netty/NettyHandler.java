@@ -54,7 +54,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
   private void dispatch(Executor executor, ChannelHandlerContext ctx, Context context,
       Route.Chain chain) {
     Executor exec = executor == null ? this.executor : executor;
-    exec.execute(() -> chain.next(context));
+    exec.execute(() -> chain.resume(context));
   }
 
   @Override

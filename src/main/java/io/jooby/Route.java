@@ -5,6 +5,8 @@ import javax.annotation.Nonnull;
 public interface Route {
 
   interface Chain {
+    void resume(@Nonnull Context ctx);
+
     void next(@Nonnull Context ctx);
   }
 
@@ -54,11 +56,9 @@ public interface Route {
 
     default ErrHandler then(Route.ErrHandler next) {
       return (ctx, problem) -> {
+        handle(ctx, problem);
         if (!ctx.committed()) {
-          handle(ctx, problem);
-          if (!ctx.committed()) {
-            next.handle(ctx, problem);
-          }
+          next.handle(ctx, problem);
         }
       };
     }

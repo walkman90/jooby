@@ -50,13 +50,6 @@ public class FeatureTest extends App {
     }));
 
     get("/filters", ctx -> "Hello filters!");
-
-    get("/rx", detach(ctx -> {
-      Flowable.fromCallable(() -> "Hello rx!")
-          .subscribeOn(Schedulers.io())
-          .observeOn(Schedulers.single())
-          .subscribe(ctx::send);
-    }));
   }
 
   @Test
@@ -96,22 +89,6 @@ public class FeatureTest extends App {
       assertEquals(null, rsp.header("transfer-encoding"));
       assertEquals("12", rsp.header("content-length"));
       assertEquals("Hello world!", rsp.body().string());
-    });
-  }
-
-  @Test
-  public void rxJava(WebClient client) throws IOException {
-    client.get("/rx", rsp -> {
-      assertEquals("9", rsp.header("content-length"));
-      assertEquals("Hello rx!", rsp.body().string());
-    });
-  }
-
-  @Test
-  public void rxJavaFlow(WebClient client) throws IOException {
-    client.get("/rx/flow", rsp -> {
-      assertEquals("14", rsp.header("content-length"));
-      assertEquals("Hello rx/flow!", rsp.body().string());
     });
   }
 

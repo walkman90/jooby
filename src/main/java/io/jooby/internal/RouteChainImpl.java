@@ -18,8 +18,13 @@ public class RouteChainImpl implements Route.Chain {
     this.err = err;
   }
 
+  public void resume(Context ctx) {
+    r -= 1;
+    next(ctx);
+  }
+
   @Override public void next(Context ctx) {
-    if (ctx.committed() || ctx.isDetached()) {
+    if (ctx.committed()) {
       return;
     }
     if (r < routes.length) {
@@ -27,12 +32,13 @@ public class RouteChainImpl implements Route.Chain {
       ctx.route(route);
       try {
         route.handler.handle(ctx, this);
-      } catch (Context.Dispatched d) {
-        r -= 1;
-        throw d;
+      } catch (Context.Dispatched dispatched) {
+        throw dispatched;
       } catch (Throwable x) {
         handleError(ctx, x);
       }
+    } else {
+      ctx.end();
     }
   }
 

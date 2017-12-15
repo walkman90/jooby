@@ -2,6 +2,7 @@ package io.jooby;
 
 import io.jooby.internal.RouterImpl;
 import io.jooby.netty.Netty;
+import org.jooby.funzy.Throwing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,10 @@ public class App implements Router {
 
   @Override public Route define(String method, String pattern, Route.Filter handler) {
     return router.define(method, pattern, handler);
+  }
+
+  @Override public <T> Router with(Throwing.Consumer2<Context, T> consumer, Runnable action) {
+    return router.with(consumer, action);
   }
 
   @Override public Route.ErrHandler err() {

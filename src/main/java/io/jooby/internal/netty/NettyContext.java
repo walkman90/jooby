@@ -109,8 +109,8 @@ public final class NettyContext extends BaseContext {
   }
 
   @Override public OutputStream outputStream() {
-    chunk += 1;
     if (stream == null) {
+      chunk += 1;
       stream = new NettyOutputStream(ctx, 8192);
       writeHeaders();
     } else {
@@ -151,17 +151,20 @@ public final class NettyContext extends BaseContext {
   }
 
   @Override public Context end() {
-    if (chunk > 0) {
-      if (!keepAlive) {
-        ctx.writeAndFlush(EMPTY_LAST_CONTENT).addListener(CLOSE);
+    if (!committed) {
+      committed = true;
+      if (chunk > 0) {
+        if (!keepAlive) {
+          ctx.writeAndFlush(EMPTY_LAST_CONTENT).addListener(CLOSE);
+        }
+      } else {
+        // empty response
+        setHeaders.remove(CONNECTION);
+        setHeaders.set(CONTENT_LENGTH, 0);
+        HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
+        ctx.writeAndFlush(rsp).addListener(CLOSE);
       }
-    } else if (!committed) {
-      setHeaders.remove(CONNECTION);
-      setHeaders.set(CONTENT_LENGTH, 0);
-      HttpResponse rsp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, setHeaders);
-      ctx.writeAndFlush(rsp).addListener(CLOSE);
     }
-    committed = true;
     return this;
   }
 

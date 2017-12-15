@@ -80,4 +80,6 @@ public interface Router {
   Router err(Route.ErrHandler handler);
 
   Route.ErrHandler err();
+
+  <T> Router with(Throwing.Consumer2<Context, T> consumer, Runnable action);
 }

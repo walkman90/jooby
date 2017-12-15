@@ -11,7 +11,7 @@ public class RouteImpl implements Route {
 
   private final String patternString;
 
-  public final Route.Filter handler;
+  public Route.Filter handler;
 
   public final boolean endpoint;
 

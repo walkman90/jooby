@@ -9,57 +9,76 @@ import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
 import org.jooby.funzy.Throwing;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.concurrent.ForkJoinPool;
 
 @AppTest
 public class DispatchTest extends App {
 
   {
-    get("/rx", detach(ctx -> {
-      Flowable.fromCallable(() -> "Hello rx!")
-          .subscribeOn(Schedulers.io())
-          .observeOn(Schedulers.single())
-          .subscribe(ctx::send);
-    }));
+    get("/def-worker", ctx -> {
+      /**
+       * Dispatch to default executor:
+       */
+      ctx.dispatch();
 
-    get("/rx/flow", rx(ctx ->
-      Flowable.fromCallable(() -> "Hello rx/flow!")
-          .subscribeOn(Schedulers.io())
-          .observeOn(Schedulers.single())
-    ));
-  }
+      return Thread.currentThread().getName();
+    });
 
-  @Test
-  public void rxJava(WebClient client) throws IOException {
-    client.get("/rx", rsp -> {
-      assertEquals("9", rsp.header("content-length"));
-      assertEquals("Hello rx!", rsp.body().string());
+    get("/custom-worker", ctx -> {
+      /**
+       * Dispatch to custom executor:
+       */
+      ctx.dispatch(ForkJoinPool.commonPool());
+
+      return Thread.currentThread().getName();
+    });
+
+    before("/pipe/**", ctx -> {
+      ctx.header("p1", "1:" + ctx.isInIoThread());
+    });
+
+    before("/pipe/2", ctx -> {
+      ctx.dispatch();
+      ctx.header("p2", "2:" + ctx.isInIoThread());
+    });
+
+    before("/pipe/**", ctx -> {
+      ctx.header("p3", "3:" + ctx.isInIoThread());
+    });
+
+    get("/pipe/:id", ctx -> {
+      ctx.header("p4", "4:" + ctx.isInIoThread());
+      return "pipe-with-dispatch";
     });
   }
 
   @Test
-  public void rxJavaFlow(WebClient client) throws IOException {
-    client.get("/rx/flow", rsp -> {
-      assertEquals("14", rsp.header("content-length"));
-      assertEquals("Hello rx/flow!", rsp.body().string());
+  public void dispathToDefaultWorker(WebClient client) throws IOException {
+    client.get("/def-worker", rsp -> {
+      assertTrue(rsp.body().string().toLowerCase().startsWith("defaulteventexecutor"));
     });
   }
 
-  public static <T> Route.Handler rx(Throwing.Function<Context, Flowable<T>> handler) {
-    return new Route.Handler() {
-      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Chain chain)
-          throws Throwable {
-        ctx.detach();
-        handler.apply(ctx)
-            .subscribe(success -> ctx.send(success.toString()));
-      }
+  @Test
+  public void dispathToCustomWorker(WebClient client) throws IOException {
+    client.get("/custom-worker", rsp -> {
+      assertTrue(rsp.body().string().toLowerCase().startsWith("forkjoinpool"));
+    });
+  }
 
-      @Override public Object handle(@Nonnull Context ctx) throws Throwable {
-        return ctx;
-      }
-    };
+  @Test
+  public void ableToDispatchWillExecutingAPipeline(WebClient client) throws IOException {
+    client.get("/pipe/2", rsp -> {
+      assertEquals("1:true", rsp.header("p1"));
+      assertEquals("2:false", rsp.header("p2"));
+      assertEquals("3:false", rsp.header("p3"));
+      assertEquals("4:false", rsp.header("p4"));
+      assertEquals("pipe-with-dispatch", rsp.body().string());
+    });
   }
 }
