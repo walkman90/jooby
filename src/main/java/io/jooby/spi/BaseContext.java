@@ -2,11 +2,10 @@ package io.jooby.spi;
 
 import io.jooby.Context;
 import io.jooby.Route;
-import io.jooby.Router;
-import io.jooby.internal.RouteChainImpl;
+import io.jooby.Value;
+import io.jooby.internal.ValueImpl;
 
 import javax.annotation.Nonnull;
-import java.util.Iterator;
 import java.util.concurrent.Executor;
 
 public abstract class BaseContext implements Context {
@@ -22,6 +21,10 @@ public abstract class BaseContext implements Context {
       this.after = this.after.then(after);
     }
     return this;
+  }
+
+  public Value query(String name) {
+    return new ValueImpl(query().values(name));
   }
 
   @Nonnull @Override public final Route route() {

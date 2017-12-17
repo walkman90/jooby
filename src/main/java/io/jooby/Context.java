@@ -3,6 +3,7 @@ package io.jooby;
 import org.jooby.funzy.Throwing;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -16,7 +17,7 @@ public interface Context {
   class Dispatched extends RuntimeException {
     public final Executor executor;
 
-    public Dispatched(Executor executor) {
+    public Dispatched(@Nullable Executor executor) {
       this.executor = executor;
     }
   }
@@ -26,6 +27,10 @@ public interface Context {
    * **** Request methods *************************************************************************
    * **********************************************************************************************
    */
+  @Nonnull QueryString query();
+
+  @Nonnull Value query(String name);
+
   @Nonnull String method();
 
   @Nonnull String path();
@@ -36,15 +41,13 @@ public interface Context {
 
   boolean isInIoThread();
 
-  default Context dispatch() {
+  default @Nonnull Context dispatch() {
     return dispatch(null);
   }
 
-  Context dispatch(Executor executor);
+  @Nonnull Context dispatch(@Nullable Executor executor);
 
-  boolean isDetached();
-
-  Context detach();
+  @Nonnull Context detach();
 
   /**
    * **********************************************************************************************
@@ -52,11 +55,11 @@ public interface Context {
    * **********************************************************************************************
    */
 
-  Context reset();
+  @Nonnull Context reset();
 
-  OutputStream outputStream();
+  @Nonnull OutputStream outputStream();
 
-  default Context outputStream(Throwing.Consumer<OutputStream> callback) {
+  default @Nonnull Context outputStream(@Nonnull Throwing.Consumer<OutputStream> callback) {
     try (OutputStream w = outputStream()) {
       callback.accept(w);
     } catch (Throwable x) {
@@ -67,15 +70,15 @@ public interface Context {
     return this;
   }
 
-  default Writer writer() {
+  default @Nonnull Writer writer() {
     return writer(StandardCharsets.UTF_8);
   }
 
-  default Context writer(Throwing.Consumer<Writer> writer) {
+  default @Nonnull Context writer(@Nonnull Throwing.Consumer<Writer> writer) {
     return writer(StandardCharsets.UTF_8, writer);
   }
 
-  default Context writer(Charset charset, Throwing.Consumer<Writer> writer) {
+  default @Nonnull Context writer(@Nonnull Charset charset, @Nonnull Throwing.Consumer<Writer> writer) {
     try (Writer w = writer(charset)) {
       writer.accept(w);
     } catch (Throwable x) {
@@ -86,47 +89,47 @@ public interface Context {
     return this;
   }
 
-  default Writer writer(Charset charset) {
+  default @Nonnull Writer writer(@Nonnull Charset charset) {
     return new OutputStreamWriter(outputStream(), charset);
   }
 
-  Context after(Route.After after);
+  @Nonnull Context after(@Nonnull Route.After after);
 
-  default Context header(String name, int value) {
+  default @Nonnull Context header(@Nonnull String name, int value) {
     return header(name, Integer.toString(value));
   }
 
-  Context header(String name, String value);
+  @Nonnull Context header(@Nonnull String name, @Nonnull String value);
 
   int status();
 
-  Context status(int status);
+  @Nonnull Context status(int status);
 
-  Context length(long length);
+  @Nonnull Context length(long length);
 
-  Context type(String contentType);
+  @Nonnull Context type(@Nonnull String contentType);
 
-  default Context write(String chunk) {
+  default @Nonnull Context write(@Nonnull String chunk) {
     return write(chunk, StandardCharsets.UTF_8);
   }
 
-  Context write(String chunk, Charset charset);
+  @Nonnull Context write(@Nonnull String chunk, @Nonnull Charset charset);
 
-  Context write(byte[] chunk);
+  @Nonnull Context write(byte[] chunk);
 
-  Context write(ByteBuffer chunk);
+  @Nonnull Context write(@Nonnull ByteBuffer chunk);
 
-  default Context send(String response) {
+  default @Nonnull Context send(@Nonnull String response) {
     return send(response, StandardCharsets.UTF_8);
   }
 
-  Context send(String response, Charset charset);
+  @Nonnull Context send(@Nonnull String response, @Nonnull Charset charset);
 
-  Context send(byte[] chunk);
+  @Nonnull Context send(@Nonnull byte[] chunk);
 
-  Context send(ByteBuffer chunk);
+  @Nonnull Context send(@Nonnull ByteBuffer chunk);
 
-  Context end();
+  @Nonnull Context end();
 
   boolean committed();
 }

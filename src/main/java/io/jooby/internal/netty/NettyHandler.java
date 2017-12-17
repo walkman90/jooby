@@ -8,15 +8,11 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpUtil;
 import static io.netty.handler.codec.http.HttpUtil.isKeepAlive;
-import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
 import java.util.concurrent.Executor;
 
 @ChannelHandler.Sharable
@@ -39,9 +35,14 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws InterruptedException {
     if (msg instanceof HttpRequest) {
       HttpRequest req = (HttpRequest) msg;
-      String path = Route.normalize(req.uri());
+      String path = req.uri();
+      int q = path.indexOf('?');
+      if (q > 0) {
+        path = path.substring(0, q);
+      }
+      path = Route.normalize(path);
       ctx.channel().attr(PATH).set(path);
-      Route.Chain chain = router.chain(req.method().name(), path);
+      Route.Pipeline chain = router.pipeline(req.method().name(), path);
       NettyContext context = new NettyContext(ctx, req, isKeepAlive(req), path);
       try {
         chain.next(context);
@@ -52,7 +53,7 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
   }
 
   private void dispatch(Executor executor, ChannelHandlerContext ctx, Context context,
-      Route.Chain chain) {
+      Route.Pipeline chain) {
     Executor exec = executor == null ? this.executor : executor;
     exec.execute(() -> chain.resume(context));
   }

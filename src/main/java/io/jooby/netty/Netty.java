@@ -2,6 +2,7 @@ package io.jooby.netty;
 
 import io.jooby.WebServer;
 import io.jooby.Router;
+import io.jooby.internal.netty.NettyConfigurer;
 import io.jooby.internal.netty.NettyHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -10,9 +11,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpServerExpectContinueHandler;
 import io.netty.handler.logging.LogLevel;
@@ -48,15 +47,16 @@ public class Netty implements WebServer {
   }
 
   private static boolean SSL = false;
-  private NioEventLoopGroup bossGroup;
-  private NioEventLoopGroup workerGroup;
+  private EventLoopGroup accept;
+  private EventLoopGroup worker;
 
   public void start(int port, Router router, boolean join) {
     // Configure SSL.
     final SslContext sslCtx;
+    NettyConfigurer provider = NettyConfigurer.get();
     // Configure the server.
-    this.bossGroup = new NioEventLoopGroup(1);
-    this.workerGroup = new NioEventLoopGroup();
+    this.accept = provider.group(1);
+    this.worker = provider.group(0);
     try {
       if (SSL) {
         SelfSignedCertificate ssc = new SelfSignedCertificate();
@@ -65,14 +65,14 @@ public class Netty implements WebServer {
         sslCtx = null;
       }
       DefaultEventExecutorGroup executor = new DefaultEventExecutorGroup(32);
-      ServerBootstrap b = new ServerBootstrap();
-      b.option(ChannelOption.SO_BACKLOG, 1024);
-      b.group(bossGroup, workerGroup)
-          .channel(NioServerSocketChannel.class)
+      ServerBootstrap bootstrap = new ServerBootstrap();
+      bootstrap.option(ChannelOption.SO_BACKLOG, 1024);
+      bootstrap.group(accept, worker)
+          .channel(provider.channel())
           .handler(new LoggingHandler(LogLevel.DEBUG))
           .childHandler(new Pipeline(sslCtx, executor, router));
 
-      Channel ch = b.bind(port).sync().channel();
+      Channel ch = bootstrap.bind(port).sync().channel();
 
       ChannelFuture future = ch.closeFuture();
       if (join) {
@@ -84,7 +84,7 @@ public class Netty implements WebServer {
   }
 
   @Override public void stop() {
-    workerGroup.shutdownGracefully();
-    bossGroup.shutdownGracefully();
+    worker.shutdownGracefully();
+    accept.shutdownGracefully();
   }
 }

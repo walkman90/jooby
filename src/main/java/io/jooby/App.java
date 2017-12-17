@@ -2,10 +2,10 @@ package io.jooby;
 
 import io.jooby.internal.RouterImpl;
 import io.jooby.netty.Netty;
-import org.jooby.funzy.Throwing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.util.stream.Stream;
 
 public class App implements Router {
@@ -19,8 +19,10 @@ public class App implements Router {
 
   public void start(int port, boolean join) {
     this.server = new Netty();
-    log().info("\n\n    http://localhost:{}\n", port);
-    server.start(port, router.start(), join);
+    RouterImpl router = this.router.start();
+    log().info(
+        getClass().getSimpleName() + " ready:\n" + router.toString() + "\n\nhttp://localhost:" + port + "\n");
+    server.start(port, router, join);
   }
 
   public void stop() {
@@ -31,16 +33,12 @@ public class App implements Router {
     return router.routes();
   }
 
-  @Override public Route.Chain chain(String method, String path) {
-    return router.chain(method, path);
+  @Override public Route.Pipeline pipeline(String method, String path) {
+    return router.pipeline(method, path);
   }
 
   @Override public Route define(String method, String pattern, Route.Filter handler) {
     return router.define(method, pattern, handler);
-  }
-
-  @Override public <T> Router with(Throwing.Consumer2<Context, T> consumer, Runnable action) {
-    return router.with(consumer, action);
   }
 
   @Override public Route.ErrHandler err() {
@@ -52,7 +50,7 @@ public class App implements Router {
     return this;
   }
 
-  public Logger log() {
+  public @Nonnull Logger log() {
     return LoggerFactory.getLogger(getClass());
   }
 

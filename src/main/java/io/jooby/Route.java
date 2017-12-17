@@ -4,18 +4,18 @@ import javax.annotation.Nonnull;
 
 public interface Route {
 
-  interface Chain {
+  interface Pipeline {
     void resume(@Nonnull Context ctx);
 
     void next(@Nonnull Context ctx);
   }
 
   interface Filter {
-    void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable;
+    void handle(@Nonnull Context ctx, @Nonnull Pipeline chain) throws Throwable;
   }
 
   interface Before extends Filter {
-    default void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable {
+    default void handle(@Nonnull Context ctx, @Nonnull Pipeline chain) throws Throwable {
       handle(ctx);
       chain.next(ctx);
     }
@@ -24,7 +24,7 @@ public interface Route {
   }
 
   interface After extends Filter {
-    default void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable {
+    default void handle(@Nonnull Context ctx, @Nonnull Pipeline chain) throws Throwable {
       ctx.after(this);
       chain.next(ctx);
     }
@@ -40,7 +40,7 @@ public interface Route {
   }
 
   interface Handler extends Filter {
-    default void handle(@Nonnull Context ctx, @Nonnull Chain chain) throws Throwable {
+    default void handle(@Nonnull Context ctx, @Nonnull Pipeline chain) throws Throwable {
       Object result = handle(ctx);
       if (result != ctx && !ctx.committed()) {
         ctx.send(result.toString());
@@ -52,9 +52,9 @@ public interface Route {
   }
 
   interface ErrHandler {
-    void handle(Context ctx, Err problem);
+    void handle(@Nonnull Context ctx, @Nonnull Err problem);
 
-    default ErrHandler then(Route.ErrHandler next) {
+    default @Nonnull ErrHandler then(@Nonnull Route.ErrHandler next) {
       return (ctx, problem) -> {
         handle(ctx, problem);
         if (!ctx.committed()) {
@@ -70,7 +70,7 @@ public interface Route {
 
   @Nonnull Filter handler();
 
-  default void handle(Context ctx, Route.Chain chain) throws Throwable {
+  default void handle(@Nonnull Context ctx, @Nonnull Pipeline chain) throws Throwable {
     handler().handle(ctx, chain);
   }
 

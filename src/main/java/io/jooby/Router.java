@@ -7,6 +7,8 @@ import java.util.stream.Stream;
 
 public interface Router {
 
+  String ALL = "*";
+
   String GET = "GET";
 
   String POST = "POST";
@@ -17,49 +19,45 @@ public interface Router {
 
   String PATCH = "PATCH";
 
-  default String[] methods() {
-    return new String[]{GET, POST, PUT, PATCH};
-  }
-
-  default Route before(String method, String pattern, Route.Before handler) {
+  default @Nonnull Route before(@Nonnull String method, @Nonnull String pattern, @Nonnull Route.Before handler) {
     return define(method.toUpperCase(), pattern, handler);
   }
 
-  default Route before(String pattern, Route.Before handler) {
-    return define("*", pattern, handler);
+  default @Nonnull Route before(@Nonnull String pattern, @Nonnull Route.Before handler) {
+    return define(ALL, pattern, handler);
   }
 
-  default Route after(String method, String pattern, Route.After handler) {
+  default @Nonnull Route after(@Nonnull String method, @Nonnull String pattern, @Nonnull Route.After handler) {
     return define(method.toUpperCase(), pattern, handler);
   }
 
-  default Route after(String pattern, Route.After handler) {
-    return define("*", pattern, handler);
+  default @Nonnull Route after(@Nonnull String pattern, @Nonnull Route.After handler) {
+    return define(ALL, pattern, handler);
   }
 
-  default Route get(String pattern, Route.Handler handler) {
+  default @Nonnull Route get(@Nonnull String pattern, @Nonnull Route.Handler handler) {
     return define(GET, pattern, handler);
   }
 
-  default Route post(String pattern, Route.Handler handler) {
+  default @Nonnull Route post(@Nonnull String pattern, @Nonnull Route.Handler handler) {
     return define(POST, pattern, handler);
   }
 
-  default Route put(String pattern, Route.Handler handler) {
+  default @Nonnull Route put(@Nonnull String pattern, @Nonnull Route.Handler handler) {
     return define(PUT, pattern, handler);
   }
 
-  default Route delete(String pattern, Route.Handler handler) {
+  default @Nonnull Route delete(@Nonnull String pattern, @Nonnull Route.Handler handler) {
     return define(DELETE, pattern, handler);
   }
 
-  default Route patch(String pattern, Route.Handler handler) {
+  default @Nonnull Route patch(@Nonnull String pattern, @Nonnull Route.Handler handler) {
     return define(PATCH, pattern, handler);
   }
 
-  default Route.Handler detach(Throwing.Consumer<Context> handler) {
+  default @Nonnull Route.Handler detach(@Nonnull Throwing.Consumer<Context> handler) {
     return new Route.Handler() {
-      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Chain chain)
+      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Pipeline chain)
           throws Throwable {
         ctx.detach();
         handler.accept(ctx);
@@ -71,15 +69,13 @@ public interface Router {
     };
   }
 
-  Route.Chain chain(String method, String path);
+  @Nonnull Route.Pipeline pipeline(@Nonnull String method, @Nonnull String path);
 
-  Stream<Route> routes();
+  @Nonnull Stream<Route> routes();
 
-  Route define(String method, String pattern, Route.Filter handler);
+  @Nonnull Route define(@Nonnull String method, @Nonnull String pattern, @Nonnull Route.Filter handler);
 
-  Router err(Route.ErrHandler handler);
+  @Nonnull Router err(@Nonnull Route.ErrHandler handler);
 
-  Route.ErrHandler err();
-
-  <T> Router with(Throwing.Consumer2<Context, T> consumer, Runnable action);
+  @Nonnull Route.ErrHandler err();
 }

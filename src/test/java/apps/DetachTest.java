@@ -4,11 +4,9 @@ import io.jooby.App;
 import io.jooby.AppTest;
 import io.jooby.Context;
 import io.jooby.Route;
-import io.jooby.Router;
 import io.jooby.WebClient;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
-import net.bytebuddy.implementation.bytecode.Throw;
 import org.jooby.funzy.Throwing;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
@@ -58,7 +56,7 @@ public class DetachTest extends App {
 
   public static <T> Route.Handler rx(Throwing.Function<Context, Flowable<T>> handler) {
     return new Route.Handler() {
-      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Chain chain)
+      @Override public void handle(@Nonnull Context ctx, @Nonnull Route.Pipeline chain)
           throws Throwable {
         ctx.detach();
         handler.apply(ctx)

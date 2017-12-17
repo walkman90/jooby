@@ -1,14 +1,11 @@
 package io.jooby.internal.netty;
 
 import io.jooby.Context;
-import io.jooby.Route;
+import io.jooby.QueryString;
 import io.jooby.spi.BaseContext;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import static io.netty.buffer.Unpooled.copiedBuffer;
 import static io.netty.buffer.Unpooled.wrappedBuffer;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import static io.netty.channel.ChannelFutureListener.CLOSE;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -25,16 +22,18 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.LastHttpContent;
 import static io.netty.handler.codec.http.LastHttpContent.EMPTY_LAST_CONTENT;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import org.jooby.funzy.Throwing;
 
 import javax.annotation.Nonnull;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.Iterator;
-import java.util.function.Consumer;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 public final class NettyContext extends BaseContext {
   private final HttpHeaders setHeaders = new DefaultHttpHeaders(false);
@@ -47,6 +46,7 @@ public final class NettyContext extends BaseContext {
   private int chunk;
   private NettyOutputStream stream;
   private boolean detached;
+  private NettyQueryString query;
 
   public NettyContext(ChannelHandlerContext ctx, HttpRequest req, boolean keepAlive, String path) {
     this.path = path;
@@ -56,6 +56,13 @@ public final class NettyContext extends BaseContext {
       setHeaders.set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
     }
     this.keepAlive = keepAlive;
+  }
+
+  @Nonnull @Override public QueryString query() {
+    if (query == null) {
+      query = new NettyQueryString(req.uri());
+    }
+    return query;
   }
 
   @Override public int status() {
@@ -92,10 +99,6 @@ public final class NettyContext extends BaseContext {
   @Override public Context length(long length) {
     setHeaders.set(CONTENT_LENGTH, length);
     return this;
-  }
-
-  @Override public boolean isDetached() {
-    return detached;
   }
 
   @Override public Context detach() {

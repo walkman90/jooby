@@ -8,12 +8,12 @@ import static org.jooby.funzy.Throwing.isFatal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RouteChainImpl implements Route.Chain {
+public class PipelineImpl implements Route.Pipeline {
   private final RouteImpl[] routes;
   private final Route.ErrHandler err;
   private int r;
 
-  public RouteChainImpl(RouteImpl[] routes, Route.ErrHandler err) {
+  public PipelineImpl(RouteImpl[] routes, Route.ErrHandler err) {
     this.routes = routes;
     this.err = err;
   }
