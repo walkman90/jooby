@@ -52,9 +52,6 @@ public final class NettyContext extends BaseContext {
     this.path = path;
     this.ctx = ctx;
     this.req = req;
-    if (keepAlive) {
-      setHeaders.set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-    }
     this.keepAlive = keepAlive;
   }
 
@@ -183,10 +180,12 @@ public final class NettyContext extends BaseContext {
       HttpResponse rsp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, buff);
       rsp.headers().set(setHeaders);
       if (keepAlive) {
-        ctx.writeAndFlush(rsp, ctx.voidPromise());
+        rsp.headers().set(CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        ctx.write(rsp, ctx.voidPromise());
       } else {
-        ctx.writeAndFlush(rsp).addListener(CLOSE);
+        ctx.write(rsp).addListener(CLOSE);
       }
+      ctx.executor().execute(ctx::flush);
       committed = true;
       return this;
     } catch (Throwable x) {

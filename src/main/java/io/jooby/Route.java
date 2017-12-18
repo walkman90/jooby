@@ -42,10 +42,13 @@ public interface Route {
   interface Handler extends Filter {
     default void handle(@Nonnull Context ctx, @Nonnull Pipeline chain) throws Throwable {
       Object result = handle(ctx);
-      if (result != ctx && !ctx.committed()) {
-        ctx.send(result.toString());
+      if (!ctx.committed()) {
+        if (result != ctx) {
+          ctx.send(result.toString());
+        } else {
+          chain.next(ctx);
+        }
       }
-      chain.next(ctx);
     }
 
     Object handle(@Nonnull Context ctx) throws Throwable;

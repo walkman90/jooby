@@ -4,6 +4,7 @@ import io.jooby.Context;
 import io.jooby.Err;
 import io.jooby.Route;
 import io.jooby.Router;
+import io.jooby.internal.ConnectionLost;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -24,11 +25,6 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
   public NettyHandler(DefaultEventExecutorGroup executor, Router router) {
     this.executor = executor;
     this.router = router;
-  }
-
-  @Override
-  public void channelReadComplete(ChannelHandlerContext ctx) {
-    ctx.flush();
   }
 
   @Override
@@ -60,10 +56,12 @@ public class NettyHandler extends ChannelInboundHandlerAdapter {
 
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-    String path = ctx.channel().attr(PATH).get();
-    ctx.close();
-    LoggerFactory.getLogger(Err.class)
-        .error("execution of {} resulted in unexpected exception", path, cause);
+    if (!ConnectionLost.test(cause)) {
+      String path = ctx.channel().attr(PATH).get();
+      ctx.close();
+      LoggerFactory.getLogger(Err.class)
+          .error("execution of {} resulted in unexpected exception", path, cause);
+    }
   }
 }
 

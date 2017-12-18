@@ -412,12 +412,6 @@
           <version>${netty.version}</version>
           <classifier>linux-x86_64</classifier>
         </dependency>
-        <dependency>
-          <groupId>io.netty</groupId>
-          <artifactId>netty-tcnative-boringssl-static</artifactId>
-          <version>${boringssl.version}</version>
-          <classifier>linux-x86_64</classifier>
-        </dependency>
       </dependencies>
     </profile>
     <profile>
@@ -427,14 +421,6 @@
           <family>windows</family>
         </os>
       </activation>
-      <dependencies>
-        <dependency>
-          <groupId>io.netty</groupId>
-          <artifactId>netty-tcnative-boringssl-static</artifactId>
-          <version>${boringssl.version}</version>
-          <classifier>windows-x86_64</classifier>
-        </dependency>
-      </dependencies>
     </profile>
     <profile>
       <id>mac_x86_64</id>
@@ -448,12 +434,6 @@
           <groupId>io.netty</groupId>
           <artifactId>netty-transport-native-kqueue</artifactId>
           <version>${netty.version}</version>
-          <classifier>osx-x86_64</classifier>
-        </dependency>
-        <dependency>
-          <groupId>io.netty</groupId>
-          <artifactId>netty-tcnative-boringssl-static</artifactId>
-          <version>${boringssl.version}</version>
           <classifier>osx-x86_64</classifier>
         </dependency>
       </dependencies>

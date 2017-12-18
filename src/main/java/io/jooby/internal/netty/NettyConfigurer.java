@@ -1,10 +1,7 @@
 package io.jooby.internal.netty;
 
-import io.jooby.netty.Netty;
-import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.kqueue.KQueue;
@@ -19,10 +16,6 @@ public interface NettyConfigurer {
 
   Class<? extends ServerSocketChannel> channel();
 
-  default void configure(ServerBootstrap bootstrap) {
-    // NOOP
-  }
-
   static NettyConfigurer get() {
     /** Epoll: */
     if (Epoll.isAvailable()) {
@@ -33,10 +26,6 @@ public interface NettyConfigurer {
 
         @Override public Class<? extends ServerSocketChannel> channel() {
           return EpollServerSocketChannel.class;
-        }
-
-        @Override public void configure(ServerBootstrap bootstrap) {
-          bootstrap.option(EpollChannelOption.SO_REUSEPORT, true);
         }
       };
     }

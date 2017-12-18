@@ -3,12 +3,9 @@ package apps;
 import io.jooby.App;
 
 public class HelloWorld extends App {
-  {
-    get("/", ctx -> "Hello Jooby");
 
-    get("/dispatch", ctx -> {
-      return ctx.dispatch().send((String) null);
-    });
+  {
+    get("/", ctx -> ctx.type("text/plain").send("Hello World!"));
   }
 
   public static void main(String[] args) {
