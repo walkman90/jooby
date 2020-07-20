@@ -184,6 +184,7 @@ public class ParserContext {
       return new BinarySchema();
     }
     if (FileUpload.class == type) {
+      
       return new FileSchema();
     }
     if (Reader.class.isAssignableFrom(type)) {
